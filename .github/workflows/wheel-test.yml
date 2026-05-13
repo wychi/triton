@@ -47,6 +47,11 @@ jobs:
           export CIBW_MANYLINUX_X86_64_IMAGE="quay.io/pypa/manylinux_2_28_x86_64:latest"
           export CIBW_BUILD="${{ matrix.python }}-manylinux_x86_64"
 
+          # Smoke-test: import the freshly-built wheel inside the per-ABI venv
+          # cibuildwheel creates. CPU-only — GPU correctness is covered by
+          # h100.yml / mi350.yml, which build from source on real hardware.
+          export CIBW_TEST_COMMAND='python -c "import triton; print(\"OK\", triton.__version__)"'
+
           python3 -m cibuildwheel . --output-dir wheelhouse
 
       - uses: actions/upload-artifact@v4
