@@ -1,5 +1,5 @@
 name: Wheels
-# Builds meta-triton manylinux wheels (x86_64 + aarch64) for each supported
+# Builds fbtriton manylinux wheels (x86_64 + aarch64) for each supported
 # CPython ABI on GitHub-hosted runners. Smoke-tests each wheel by importing it
 # inside the per-ABI venv that cibuildwheel creates. No publish step — wheel
 # artifacts are uploaded for download via 'gh run download'. The publish flow
@@ -46,11 +46,11 @@ jobs:
         run: |
           python3 -m pip install --upgrade cibuildwheel
 
-          # This fork always publishes as 'meta-triton' — hard-code it so PR
+          # This fork always publishes as 'fbtriton' — hard-code it so PR
           # and cron CI exercise the exact wheel layout the publish flow ships.
           # MAX_JOBS=2 because GH-hosted runners only have ~16 GB RAM and
           # Triton's LLVM-link OOMs at higher parallelism.
-          export CIBW_ENVIRONMENT="MAX_JOBS=2 TRITON_BUILD_WITH_CLANG_LLD=1 TRITON_WHEEL_NAME=meta-triton"
+          export CIBW_ENVIRONMENT="MAX_JOBS=2 TRITON_BUILD_WITH_CLANG_LLD=1 TRITON_WHEEL_NAME=fbtriton"
           export CIBW_BEFORE_ALL="dnf install clang lld -y"
 
           if [[ "${{ matrix.arch }}" == "x86_64" ]]; then
