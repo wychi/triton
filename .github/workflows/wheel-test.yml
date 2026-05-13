@@ -1,8 +1,7 @@
 name: Wheel Test
 # Minimal workflow to validate that the manylinux wheel build works on a
-# GitHub-hosted runner. No Azure publish, no version gating, no matrix —
-# just build a single CPython 3.11 x86_64 manylinux wheel and upload it as
-# an artifact.
+# GitHub-hosted runner. No Azure publish, no version gating.
+# Builds one CPython manylinux x86_64 wheel per matrix leg in parallel.
 #
 # Trigger via:
 #   gh workflow run wheel-test.yml -R facebookexperimental/triton
@@ -18,9 +17,16 @@ permissions: read-all
 
 jobs:
   build:
-    name: Build single wheel (cp311 x86_64)
+    name: Build wheel ${{ matrix.python }} x86_64
     runs-on: ubuntu-22.04
     timeout-minutes: 90
+
+    strategy:
+      # Don't cancel sibling Python builds when one fails — we want to see
+      # which ABIs work and which break.
+      fail-fast: false
+      matrix:
+        python: [cp310, cp311, cp312, cp313, cp314]
 
     steps:
       - name: Checkout
@@ -39,12 +45,12 @@ jobs:
           export CIBW_ENVIRONMENT="MAX_JOBS=2 TRITON_BUILD_WITH_CLANG_LLD=1"
           export CIBW_BEFORE_ALL="dnf install clang lld -y"
           export CIBW_MANYLINUX_X86_64_IMAGE="quay.io/pypa/manylinux_2_28_x86_64:latest"
-          export CIBW_BUILD="cp311-manylinux_x86_64"
+          export CIBW_BUILD="${{ matrix.python }}-manylinux_x86_64"
 
           python3 -m cibuildwheel . --output-dir wheelhouse
 
       - uses: actions/upload-artifact@v4
         with:
-          name: wheel-test-cp311-manylinux_2_28_x86_64
+          name: wheel-test-${{ matrix.python }}-manylinux_2_28_x86_64
           path: ./wheelhouse/*.whl
           if-no-files-found: error
