@@ -1,0 +1,50 @@
+name: Wheel Test
+# Minimal workflow to validate that the manylinux wheel build works on a
+# GitHub-hosted runner. No Azure publish, no version gating, no matrix —
+# just build a single CPython 3.11 x86_64 manylinux wheel and upload it as
+# an artifact.
+#
+# Trigger via:
+#   gh workflow run wheel-test.yml -R facebookexperimental/triton
+# Or by editing this file in a PR.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/wheel-test.yml
+
+permissions: read-all
+
+jobs:
+  build:
+    name: Build single wheel (cp311 x86_64)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build wheel via cibuildwheel
+        run: |
+          python3 -m pip install --upgrade cibuildwheel
+
+          # MAX_JOBS=2 because GH-hosted runners only have ~16 GB RAM and
+          # Triton's LLVM-link OOMs at higher parallelism.
+          export CIBW_ENVIRONMENT="MAX_JOBS=2 TRITON_BUILD_WITH_CLANG_LLD=1"
+          export CIBW_BEFORE_ALL="dnf install clang lld -y"
+          export CIBW_MANYLINUX_X86_64_IMAGE="quay.io/pypa/manylinux_2_28_x86_64:latest"
+          export CIBW_BUILD="cp311-manylinux_x86_64"
+
+          python3 -m cibuildwheel . --output-dir wheelhouse
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheel-test-cp311-manylinux_2_28_x86_64
+          path: ./wheelhouse/*.whl
+          if-no-files-found: error
