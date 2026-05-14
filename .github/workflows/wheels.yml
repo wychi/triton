@@ -2,9 +2,8 @@ name: Wheels
 # Builds fbtriton manylinux wheels (x86_64 + aarch64) for each supported
 # CPython ABI on GitHub-hosted runners. Smoke-tests each wheel by importing it
 # inside the per-ABI venv that cibuildwheel creates. No publish step — wheel
-# artifacts are uploaded for download via 'gh run download'. The publish flow
-# (separate workflow, follow-up) will add a `workflow_call` trigger here so it
-# can reuse this build matrix.
+# artifacts are uploaded for download via 'gh run download'. Reused by
+# publish.yml via `workflow_call`.
 #
 # Trigger via:
 #   gh workflow run wheels.yml -R facebookexperimental/triton
@@ -13,11 +12,14 @@ name: Wheels
 on:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      release_mode:
+        description: "Build a clean PyPI version (no +gitHASH suffix). Set true from publish.yml only."
+        type: boolean
+        default: false
   pull_request:
     paths:
       - .github/workflows/wheels.yml
-  schedule:
-    - cron: "0 8 * * *"
 
 permissions: read-all
 
@@ -38,6 +40,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+
+      # When called from publish.yml, force the branch name to start with
+      # 'release' so setup.py drops the +gitHASH suffix that PyPI rejects.
+      # See setup.py:get_git_version_suffix().
+      - name: Use release-branch naming for clean PyPI version
+        if: ${{ inputs.release_mode == true }}
+        run: git checkout -B release/ci
 
       - uses: actions/setup-python@v6
         with:

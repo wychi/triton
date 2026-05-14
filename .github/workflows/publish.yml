@@ -1,31 +1,34 @@
 name: Publish to PyPI
-# Builds fbtriton wheels (by reusing wheels.yml) and publishes them to PyPI
-# via Trusted Publishing (OIDC) — no API token required in repo secrets.
+# Builds fbtriton wheels (by reusing wheels.yml in release_mode) and publishes
+# them to PyPI via Trusted Publishing (OIDC) — no API token in repo secrets.
+#
+# Triggers (formal, gated):
+# - push of a tag matching v*.*.* (or v*.*.*-rc*) → real publish.
+# - workflow_dispatch → defaults to dry_run=true. To actually upload via
+#   manual dispatch, set dry_run=false AND type 'yes' in the confirm field.
 #
 # PyPI side requires a configured Trusted Publisher for this repo:
-#   project:    fbtriton
-#   owner:      facebookexperimental
-#   repo:       triton
-#   workflow:   publish.yml
+#   project:     fbtriton
+#   owner:       facebookexperimental
+#   repo:        triton
+#   workflow:    publish.yml
 #   environment: pypi
 # See: https://docs.pypi.org/trusted-publishers/
-#
-# Trigger via:
-#   - Push a tag matching v*.*.* (or v*.*.*-rc*) → publishes automatically
-#   - gh workflow run publish.yml -R facebookexperimental/triton
-#     (manual dispatch, useful for testing or re-publishing)
 
 on:
+  push:
+    tags:
+      - v[0-9]+.[0-9]+.[0-9]+
+      - v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+
   workflow_dispatch:
     inputs:
       dry_run:
         description: "Build wheels but skip the PyPI upload step"
         type: boolean
-        default: false
-  push:
-    tags:
-      - v[0-9]+.[0-9]+.[0-9]+
-      - v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+
+        default: true
+      confirm:
+        description: "Type 'yes' to actually publish (ignored if dry_run=true)"
+        default: "no"
 
 permissions: read-all
 
@@ -33,13 +36,21 @@ jobs:
   build:
     name: Build wheels
     uses: ./.github/workflows/wheels.yml
+    with:
+      release_mode: true
 
   publish:
     name: Publish to PyPI
     needs: build
+    # Real publish only on tag push, or on a manual dispatch that explicitly
+    # opts out of dry_run AND types the confirm string. Dry-run dispatches
+    # build wheels (above) but skip this job entirely.
+    if: |
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch'
+        && inputs.dry_run == false
+        && inputs.confirm == 'yes')
     runs-on: ubuntu-22.04
-    # Skip the upload step on dry runs.
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.dry_run != true }}
     environment:
       name: pypi
       url: https://pypi.org/p/fbtriton
@@ -51,8 +62,6 @@ jobs:
       - name: Download all wheel artifacts
         uses: actions/download-artifact@v6
         with:
-          # wheels.yml uploads one artifact per python/arch combo, all named
-          # wheels-*. Merge them into a single dist/ directory.
           path: dist
           pattern: wheels-*
           merge-multiple: true
@@ -64,7 +73,5 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/
-          # Fail loudly if a wheel filename collides with one already on PyPI
-          # instead of silently skipping it.
           skip-existing: false
           print-hash: true
