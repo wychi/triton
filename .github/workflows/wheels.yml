@@ -12,6 +12,7 @@ name: Wheels
 
 on:
   workflow_dispatch:
+  workflow_call:
   pull_request:
     paths:
       - .github/workflows/wheels.yml
@@ -31,7 +32,7 @@ jobs:
       # ABIs/arches work and which break.
       fail-fast: false
       matrix:
-        python: [cp310, cp311, cp312, cp313, cp314]
+        python: [cp310, cp311, cp312, cp313, cp313t, cp314, cp314t]
         arch: [x86_64, aarch64]
 
     steps:
@@ -59,6 +60,11 @@ jobs:
             export CIBW_MANYLINUX_AARCH64_IMAGE="quay.io/pypa/manylinux_2_28_aarch64:latest"
           fi
           export CIBW_BUILD="${{ matrix.python }}-manylinux_${{ matrix.arch }}"
+          export CIBW_ENABLE=cpython-freethreading
+
+          # Skip bundling libtriton.so's deps (libLLVM, libstdc++, ...) into
+          # triton.libs/ — saves ~130MB. Same trick PyTorch uses.
+          export CIBW_REPAIR_WHEEL_COMMAND_LINUX="auditwheel repair --exclude libtriton.so -w {dest_dir} {wheel}"
 
           # Smoke-test: import the freshly-built wheel inside the per-ABI venv
           # cibuildwheel creates. CPU-only — GPU correctness is covered by
