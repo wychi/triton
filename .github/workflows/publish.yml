@@ -1,0 +1,70 @@
+name: Publish to PyPI
+# Builds fbtriton wheels (by reusing wheels.yml) and publishes them to PyPI
+# via Trusted Publishing (OIDC) — no API token required in repo secrets.
+#
+# PyPI side requires a configured Trusted Publisher for this repo:
+#   project:    fbtriton
+#   owner:      facebookexperimental
+#   repo:       triton
+#   workflow:   publish.yml
+#   environment: pypi
+# See: https://docs.pypi.org/trusted-publishers/
+#
+# Trigger via:
+#   - Push a tag matching v*.*.* (or v*.*.*-rc*) → publishes automatically
+#   - gh workflow run publish.yml -R facebookexperimental/triton
+#     (manual dispatch, useful for testing or re-publishing)
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Build wheels but skip the PyPI upload step"
+        type: boolean
+        default: false
+  push:
+    tags:
+      - v[0-9]+.[0-9]+.[0-9]+
+      - v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+
+
+permissions: read-all
+
+jobs:
+  build:
+    name: Build wheels
+    uses: ./.github/workflows/wheels.yml
+
+  publish:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-22.04
+    # Skip the upload step on dry runs.
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.dry_run != true }}
+    environment:
+      name: pypi
+      url: https://pypi.org/p/fbtriton
+    permissions:
+      # Required for Trusted Publishing (OIDC).
+      id-token: write
+
+    steps:
+      - name: Download all wheel artifacts
+        uses: actions/download-artifact@v6
+        with:
+          # wheels.yml uploads one artifact per python/arch combo, all named
+          # wheels-*. Merge them into a single dist/ directory.
+          path: dist
+          pattern: wheels-*
+          merge-multiple: true
+
+      - name: List wheels
+        run: ls -la dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+          # Fail loudly if a wheel filename collides with one already on PyPI
+          # instead of silently skipping it.
+          skip-existing: false
+          print-hash: true
