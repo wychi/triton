@@ -1,0 +1,69 @@
+name: Bootstrap fbtriton on PyPI
+# One-shot workflow to register the 'fbtriton' name on PyPI by uploading a
+# tiny placeholder package (.github/pypi-bootstrap/). PyPI's default per-file
+# size limit is 100 MB, and increases (needed for the real ~hundreds-of-MB
+# manylinux wheels) can only be requested AFTER the project exists.
+#
+# OWNERSHIP PLAN (Option 2: bootstrap from personal fork, transfer to Meta):
+#   1. The first upload comes from this workflow running in `wychi/triton`.
+#      That makes wychi's PyPI account the initial Owner of `fbtriton`.
+#   2. After the project exists on PyPI:
+#        a. File a per-file size-limit increase at
+#             https://pypi.org/manage/project/fbtriton/file-size-request/
+#        b. Add a Meta-controlled PyPI account as Owner of the project at
+#             https://pypi.org/manage/project/fbtriton/collaboration/
+#        c. Add a second Trusted Publisher binding for the production repo:
+#             owner=facebookexperimental, repo=triton, workflow=publish.yml,
+#             environment=pypi
+#        d. Have the Meta Owner remove wychi as Owner. From this point on,
+#           real releases ship via publish.yml in facebookexperimental/triton.
+#
+# BEFORE FIRST RUN — register the Trusted Publisher on PyPI:
+#   Go to https://pypi.org/manage/account/publishing/ and add a PENDING
+#   publisher (the project doesn't exist yet, so it has to be pending):
+#     PyPI project name:  fbtriton
+#     Owner:              wychi          ← personal fork (changes later)
+#     Repository name:    triton
+#     Workflow filename:  bootstrap-pypi.yml
+#     Environment name:   pypi
+#
+# Then trigger this workflow manually from the Actions tab of wychi/triton.
+
+on:
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  publish:
+    name: Build and publish placeholder
+    runs-on: ubuntu-22.04
+    environment:
+      name: pypi
+      url: https://pypi.org/p/fbtriton
+    permissions:
+      id-token: write  # Trusted Publishing (OIDC)
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Build placeholder sdist + wheel
+        working-directory: .github/pypi-bootstrap
+        run: |
+          python -m pip install --upgrade build
+          python -m build --sdist --wheel --outdir "$GITHUB_WORKSPACE/dist"
+
+      - name: List artifacts (sanity check < 100 MB)
+        run: ls -la dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+          # Tolerate re-runs after the first successful registration.
+          skip-existing: true
+          print-hash: true

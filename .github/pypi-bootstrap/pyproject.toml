@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fbtriton"
+version = "0.0.1"
+description = "Placeholder for Meta's fork of OpenAI Triton. Real releases will follow under the same name."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Meta Platforms, Inc." }]
+keywords = ["triton", "gpu", "compiler"]
+classifiers = [
+    "Development Status :: 1 - Planning",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Software Development :: Compilers",
+]
+
+[project.urls]
+Homepage = "https://github.com/facebookexperimental/triton"
+Repository = "https://github.com/facebookexperimental/triton"
+
+# No packages, no modules — pure metadata. Keeps the wheel < 10 KB so it
+# uploads under PyPI's default 100 MB per-file limit. Once registered, ask
+# PyPI for a higher per-file limit before the real wheels ship.
+[tool.setuptools]
+py-modules = []
