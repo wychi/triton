@@ -12,11 +12,6 @@ name: Wheels
 on:
   workflow_dispatch:
   workflow_call:
-    inputs:
-      version_suffix:
-        description: "Optional PEP 440 suffix appended to TRITON_VERSION (e.g. .dev20260515, rc1). Passed by publish.yml."
-        type: string
-        default: ""
   pull_request:
     paths:
       - .github/workflows/wheels.yml
@@ -44,12 +39,20 @@ jobs:
         uses: actions/checkout@v6
 
       # Tag-triggered builds (via publish.yml) need a clean PEP 440 version
-      # (no +gitHASH suffix) for PyPI. Force the branch name to start with
-      # 'release' so setup.py drops the suffix.
-      # See setup.py:get_git_version_suffix().
-      - name: Use release-branch naming for clean PyPI version (tag builds only)
+      # (no +gitHASH suffix) for PyPI. Bypass setup.py's dynamic version
+      # logic (get_git_version_suffix + TRITON_WHEEL_VERSION_SUFFIX) by
+      # hardcoding TRITON_VERSION from the tag — same approach as upstream
+      # triton-lang/triton's create_release.yml.
+      #   v3.6.0          → 3.6.0
+      #   v3.6.0-rc1      → 3.6.0rc1     (PEP 440 drops the dash)
+      #   v3.6.0.dev123   → 3.6.0.dev123
+      - name: Pin TRITON_VERSION from tag for PyPI (tag builds only)
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
-        run: git checkout -B release/ci
+        run: |
+          base="${GITHUB_REF_NAME#v}"
+          base="${base/-rc/rc}"
+          sed -i "s:^TRITON_VERSION = .*:TRITON_VERSION = '${base}':" setup.py
+          grep '^TRITON_VERSION' setup.py
 
       - uses: actions/setup-python@v6
         with:
@@ -68,7 +71,6 @@ jobs:
             MAX_JOBS=4 \
             TRITON_BUILD_WITH_CLANG_LLD=1 \
             TRITON_WHEEL_NAME=fbtriton \
-            TRITON_WHEEL_VERSION_SUFFIX=${{ inputs.version_suffix }} \
             LDFLAGS=-Wl,--strip-all"
           export CIBW_BEFORE_ALL="dnf install clang lld -y"
 

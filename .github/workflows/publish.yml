@@ -30,36 +30,9 @@ on:
 permissions: read-all
 
 jobs:
-  # Convert the git tag into a PEP 440-compliant version suffix that gets
-  # appended to setup.py's base TRITON_VERSION via TRITON_WHEEL_VERSION_SUFFIX.
-  #   v3.6.0            → ""           → 3.6.0
-  #   v3.6.0-rc1        → "rc1"        → 3.6.0rc1     (PEP 440 drops the dash)
-  #   v3.6.0.dev123     → ".dev123"    → 3.6.0.dev123
-  prepare:
-    name: Compute version suffix from tag
-    runs-on: ubuntu-22.04
-    outputs:
-      version_suffix: ${{ steps.compute.outputs.version_suffix }}
-    steps:
-      - id: compute
-        run: |
-          tag="${GITHUB_REF_NAME}"
-          if [[ "$tag" =~ \.dev([0-9]+)$ ]]; then
-            suffix=".dev${BASH_REMATCH[1]}"
-          elif [[ "$tag" =~ -rc([0-9]+)$ ]]; then
-            suffix="rc${BASH_REMATCH[1]}"
-          else
-            suffix=""
-          fi
-          echo "Tag: $tag → version_suffix='$suffix'"
-          echo "version_suffix=$suffix" >> "$GITHUB_OUTPUT"
-
   build:
     name: Build wheels
-    needs: prepare
     uses: ./.github/workflows/wheels.yml
-    with:
-      version_suffix: ${{ needs.prepare.outputs.version_suffix }}
 
   publish:
     name: Publish to PyPI
