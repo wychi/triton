@@ -59,7 +59,15 @@ jobs:
 
           # This fork always publishes as 'fbtriton' — hard-code it so PR
           # and cron CI exercise the exact wheel layout the publish flow ships.
-          export CIBW_ENVIRONMENT="MAX_JOBS=4 TRITON_BUILD_WITH_CLANG_LLD=1 TRITON_WHEEL_NAME=fbtriton TRITON_WHEEL_VERSION_SUFFIX=${{ inputs.version_suffix }}"
+          # LDFLAGS strips debug symbols from libtriton.so at link time, cutting
+          # the wheel size roughly in half (the static LLVM/MLIR blob is the
+          # bulk of it).
+          export CIBW_ENVIRONMENT="\
+            MAX_JOBS=4 \
+            TRITON_BUILD_WITH_CLANG_LLD=1 \
+            TRITON_WHEEL_NAME=fbtriton \
+            TRITON_WHEEL_VERSION_SUFFIX=${{ inputs.version_suffix }} \
+            LDFLAGS=-Wl,--strip-all"
           export CIBW_BEFORE_ALL="dnf install clang lld -y"
 
           if [[ "${{ matrix.arch }}" == "x86_64" ]]; then
