@@ -13,10 +13,10 @@ on:
   workflow_dispatch:
   workflow_call:
     inputs:
-      release_mode:
-        description: "Build a clean PyPI version (no +gitHASH suffix). Set true from publish.yml only."
-        type: boolean
-        default: false
+      version_suffix:
+        description: "Optional PEP 440 suffix appended to TRITON_VERSION (e.g. .dev20260515, rc1). Passed by publish.yml."
+        type: string
+        default: ""
   pull_request:
     paths:
       - .github/workflows/wheels.yml
@@ -41,11 +41,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      # When called from publish.yml, force the branch name to start with
-      # 'release' so setup.py drops the +gitHASH suffix that PyPI rejects.
+      # Tag-triggered builds (via publish.yml) need a clean PEP 440 version
+      # (no +gitHASH suffix) for PyPI. Force the branch name to start with
+      # 'release' so setup.py drops the suffix.
       # See setup.py:get_git_version_suffix().
-      - name: Use release-branch naming for clean PyPI version
-        if: ${{ inputs.release_mode == true }}
+      - name: Use release-branch naming for clean PyPI version (tag builds only)
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
         run: git checkout -B release/ci
 
       - uses: actions/setup-python@v6
@@ -58,7 +59,7 @@ jobs:
 
           # This fork always publishes as 'fbtriton' — hard-code it so PR
           # and cron CI exercise the exact wheel layout the publish flow ships.
-          export CIBW_ENVIRONMENT="MAX_JOBS=4 TRITON_BUILD_WITH_CLANG_LLD=1 TRITON_WHEEL_NAME=fbtriton"
+          export CIBW_ENVIRONMENT="MAX_JOBS=4 TRITON_BUILD_WITH_CLANG_LLD=1 TRITON_WHEEL_NAME=fbtriton TRITON_WHEEL_VERSION_SUFFIX=${{ inputs.version_suffix }}"
           export CIBW_BEFORE_ALL="dnf install clang lld -y"
 
           if [[ "${{ matrix.arch }}" == "x86_64" ]]; then
