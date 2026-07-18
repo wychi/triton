@@ -1,0 +1,288 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nightly fbtriton — Audit Report</title><style>
+  :root{--ok:#16a34a;--okbg:#f0fdf4;--bad:#dc2626;--badbg:#fef2f2;--warn:#d97706;
+    --warnbg:#fffbeb;--na:#9ca3af;--nabg:#f9fafb;--ink:#1f2328;--muted:#656d76;
+    --line:#d0d7de;--accent:#1d4ed8;}
+  *{box-sizing:border-box;}
+  body{font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:#f3f4f6;color:var(--ink);margin:0;padding:28px;line-height:1.5;}
+  .wrap{max-width:1320px;margin:0 auto;}
+  h1{font-size:24px;font-weight:800;letter-spacing:-0.4px;margin:0 0 4px;}
+  h2{font-size:16px;font-weight:700;letter-spacing:-0.2px;margin:0 0 12px;
+    padding-bottom:6px;border-bottom:2px solid var(--line);}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 20px;}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:20px 22px;
+    margin-bottom:20px;box-shadow:0 1px 3px rgba(15,23,42,.06);}
+  .subh{font-size:14px;font-weight:700;margin:22px 0 8px;color:var(--ink);}
+  .keycard{background:#eff6ff;border:1px solid #bfdbfe;border-left:4px solid var(--accent);
+    border-radius:12px;padding:16px 20px;margin-bottom:20px;box-shadow:0 1px 3px rgba(15,23,42,.06);}
+  .keyhdr{font-size:15px;font-weight:800;letter-spacing:-0.2px;color:var(--accent);margin-bottom:8px;}
+  .keycard p{font-size:13.5px;color:var(--ink);}
+  p{margin:0 0 10px;font-size:13.5px;}
+  code{background:#f6f8fa;border:1px solid #e2e8f0;border-radius:5px;padding:1px 5px;
+    font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  ul,ol{margin:6px 0 10px;padding-left:22px;font-size:13.5px;}
+  li{margin:5px 0;}
+  ol.flow{counter-reset:none;}
+  ol.flow li{margin:7px 0;padding-left:2px;}
+  .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;margin-right:6px;}
+  .tag.g{background:var(--okbg);color:var(--ok);border:1px solid #bbf7d0;}
+  .tag.r{background:var(--badbg);color:var(--bad);border:1px solid #fecaca;}
+  .tag.a{background:var(--warnbg);color:var(--warn);border:1px solid #fde68a;}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:6px;}
+  .card{border:1px solid var(--line);border-radius:10px;padding:14px 16px;}
+  .card .nm{font-size:13px;font-weight:700;font-family:ui-monospace,Menlo,monospace;}
+  .card .rate{font-size:28px;font-weight:800;letter-spacing:-1px;margin:4px 0;}
+  .card .meta{font-size:11.5px;color:var(--muted);}
+  .bar{height:6px;border-radius:99px;background:#eef0f2;margin-top:8px;overflow:hidden;}
+  .bar>i{display:block;height:100%;border-radius:99px;}
+  .req{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:1px 7px;border-radius:99px;}
+  .req.y{background:#eff6ff;color:var(--accent);border:1px solid #bfdbfe;}
+  .req.n{background:#f9fafb;color:var(--muted);border:1px solid #e5e7eb;}
+  table{border-collapse:collapse;width:100%;font-size:12.5px;}
+  thead th{position:sticky;top:0;background:#f6f8fa;text-align:left;padding:8px 10px;
+    border-bottom:2px solid var(--line);font-size:11px;text-transform:uppercase;
+    letter-spacing:.4px;color:var(--muted);}
+  tbody td{padding:6px 10px;border-bottom:1px solid #eef0f2;}
+  td.sha{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#0550ae;}
+  td.dt{color:var(--muted);white-space:nowrap;font-size:12px;}
+  td.msg{max-width:520px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  td.c{text-align:center;font-weight:700;font-size:11px;width:64px;}
+  td.c.ok{color:var(--ok);background:var(--okbg);}
+  td.c.bad{color:var(--bad);background:var(--badbg);}
+  td.c.warn{color:var(--warn);background:var(--warnbg);}
+  td.c.na{color:var(--na);background:var(--nabg);}
+  tr.green td{background:rgba(240,253,244,.5);}
+  tr.sel td{background:#fef9c3 !important;}
+  tr.sel td.sha{font-weight:800;}
+  .pick{background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:99px;margin-left:6px;}
+  .legend{font-size:12px;color:var(--muted);margin:10px 0 0;display:flex;gap:16px;flex-wrap:wrap;align-items:center;}
+  .legend b{display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:-1px;margin-right:5px;}
+  .scroll{max-height:560px;overflow:auto;border:1px solid var(--line);border-radius:10px;}
+  .note{font-size:12px;color:var(--muted);background:#fbfcfd;border:1px dashed var(--line);
+    border-radius:8px;padding:10px 12px;margin-top:12px;}
+  /* pick simulation */
+  .simgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;}
+  @media(max-width:900px){.simgrid{grid-template-columns:1fr;}}
+  .simcol{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:#fbfcfd;}
+  .simhdr{font-size:13px;font-weight:800;letter-spacing:-0.2px;margin-bottom:6px;}
+  .simsum{font-size:12px;font-weight:600;border-radius:7px;padding:6px 10px;margin-bottom:8px;}
+  .simsum.ok{background:var(--okbg);color:var(--ok);border:1px solid #bbf7d0;}
+  .simsum.bad{background:var(--badbg);color:var(--bad);border:1px solid #fecaca;}
+  .simtab{width:100%;border-collapse:collapse;font-size:11.5px;}
+  .simtab th{text-align:left;padding:4px 6px;border-bottom:1.5px solid var(--line);
+    font-size:10px;text-transform:uppercase;letter-spacing:.3px;color:var(--muted);}
+  .simtab td{padding:3px 6px;border-bottom:1px solid #eef0f2;}
+  .simtab td.mm{color:var(--muted);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .simtab tr.simskip{opacity:.62;}
+  .simtab tr.simpick td{background:#fef9c3;font-weight:600;}
+  .simtab tr.simpick td.sha{font-weight:800;}
+  .simtab td.c sup{font-size:8px;font-weight:800;opacity:.75;margin-left:1px;}
+  .srcline{font-size:11px;color:var(--muted);margin:-4px 0 8px;padding-left:2px;}
+  .srcline b{color:var(--ink);}
+</style></head>
+<body><div class="wrap">
+
+  <h1>Nightly fbtriton — Design &amp; Audit Report</h1>
+  <p class="sub">Automated nightly <code>.dev</code> wheel selection for
+    <code>facebookexperimental/triton</code> (<code>main</code>, base <code>3.8.0</code>) ·
+    nightly series <code>3.8.0.dev&lt;date&gt;</code> · generated 2026-07-17 · data via GitHub
+    Actions <code>check-runs</code> / run-timing APIs</p>
+
+  <div class="keycard">
+    <div class="keyhdr">◆ Proposal</div>
+    <p><b>Version logic.</b> A one-time repo commit bumps the base to <code>3.8.0</code>
+      (<code>setup.py</code> + <code>python/triton/__init__.py</code>). Wheels keep a clean PEP 440
+      version — <code>3.8.0</code> (formal, → PyPI) or <code>3.8.0.dev&lt;date&gt;</code>
+      (nightly, → GitHub Release). The runtime <code>triton.__version__</code> carries the
+      fork/commit local segment: <code>3.8.0+fb</code> (formal) or
+      <code>3.8.0.dev&lt;date&gt;+fb.git&lt;hash&gt;</code> (nightly). The nightly caller derives
+      <code>3.8.0.dev&lt;date&gt;</code> (base read from source) and <code>wheels_fb</code>
+      applies it via <code>setup.py</code>'s substitution hook to both
+      <code>TRITON_VERSION</code> and <code>__version__</code>.</p>
+    <p><b>Selection logic.</b> Fixed daily trigger (<code>04:00 UTC</code>) → read the last shipped
+      commit from the nightly index (<code>latest.json</code>) → enumerate <i>new</i> commits since
+      then → walk newest→oldest, pulling each commit's SHA-keyed <code>check-runs</code>
+      (trigger-agnostic; a check is green if its <b>latest</b> run on that SHA passed — a rerun
+      supersedes earlier runs; cancelled ignored) → first commit where <b>all four required checks
+      pass</b> → build the shrunk matrix → upload to the rolling <code>nightly</code> Release,
+      refresh the Pages index, prune &gt; 30 nightlies. No new commits → <b>exit silently</b>. New
+      commits but none green → <b>file a tracking issue</b>.</p>
+    <p><b>Storage &amp; retention.</b> Nightly wheels (cp312 + cp313 × x86_64 + aarch64) are uploaded as assets on a single
+      rolling <code>nightly</code> <b>GitHub Release</b> (one tag, no per-day tags) behind a
+      <b>GitHub Pages</b> PEP 503 index; a prune step keeps the last <b>30 nightlies</b>. PyPI can't do
+      this (~10 GB project cap, no delete API), so it's reserved for formal releases. Everything
+      runs on <code>GITHUB_TOKEN</code> — no PAT or App token.</p>
+    <p style="margin:0"><b>Install (nightly).</b>
+      <code>pip install --pre fbtriton --index-url https://facebookexperimental.github.io/triton/nightly/simple/</code></p>
+  </div>
+
+  <div class="panel">
+    <h2>1 · Context</h2>
+    <p><b>Goal.</b> Publish one <code>fbtriton</code> nightly <code>.dev</code> wheel per day to
+      PyPI, built from a <i>verified</i> commit on <code>main</code> — not just whatever HEAD
+      happens to be.</p>
+    <p><b>Why verification is required.</b> On this fork, <b>GitHub CI is <u>not</u> a merge
+      gate.</b> No ruleset defines <code>required_status_checks</code>. Commits are authored /
+      reviewed inside Meta's monorepo and imported to public <code>main</code> via
+      <b>CodeSync/ShipIt</b> — landing is allowed <i>without</i> CI signals. The GitHub Actions
+      workflows run <b>after</b> a commit is already on <code>main</code>, so they are a
+      <b>post-merge monitoring signal</b>. An arbitrary commit may therefore carry failing — or
+      missing — CI, and the nightly must independently pick a green one.</p>
+    <p><b>Constraints that shaped the design:</b></p>
+    <ul>
+      <li><b>Retention forces storage off PyPI.</b> Full-matrix nightlies are <b>~2.4 GB/day</b>,
+        PyPI's project cap is ~10 GB, and PyPI has <b>no delete API</b> (manual, filenames burned) —
+        so nightlies are hosted on a <b>GitHub Release</b> (binary asset storage) behind a
+        <b>GitHub Pages</b> PEP 503 index, with a <b>prune</b> step keeping the last
+        <b>30 nightlies</b>. A <b>shrunk ABI matrix</b> (cp312 + cp313 × x86_64 + aarch64) further cuts volume. Formal releases
+        still go to PyPI.</li>
+      <li><b>No exploded tags.</b> Nightlies reuse a single rolling <code>nightly</code> Release
+        (one tag) — assets are added and pruned, never a per-day tag.</li>
+      <li><b>Commit provenance.</b> Baked into the runtime <code>__version__</code> and a small
+        <code>latest.json</code> manifest in the Release, which the next run reads back as the
+        boundary marker (no state branch, can't drift).</li>
+      <li><b>Clean wheel versions.</b> Wheels carry a plain PEP 440 version
+        (<code>3.8.0.dev&lt;date&gt;</code>); the <code>+fb.git&lt;hash&gt;</code> local segment
+        lives only in the runtime <code>__version__</code> (PyPI would reject it, and it keeps the
+        formal + nightly paths consistent).</li>
+      <li><b>H100 capacity.</b> H100 runs frequently queue 20+h or never run, so selection is
+        event-driven (walk back to the newest already-green commit) and never blocks on the queue.</li>
+      <li><b>No token.</b> <code>GITHUB_TOKEN</code> manages Releases and deploys Pages, so no PAT
+        or GitHub App is required.</li>
+    </ul>
+    <h3 class="subh">CI signals — stats &amp; status</h3>
+    <p>The nightly gates on four checks. Pass rates are over the <b>last 7 days</b>, counting only
+      commits where the check actually ran (deduped to the latest run per check). "Coverage" = how
+      many of 79 commits even got that check.</p>
+    <div class="stats">
+      <div class="card"><div class="nm">LIT Tests <span class="req y">required</span></div>
+        <div class="rate" style="color:var(--ok)">97%</div>
+        <div class="meta">62 / 64 passed · coverage 64/79</div>
+        <div class="meta">⏱ avg exec <b>~23 min</b> · compiler LIT (CPU)</div>
+        <div class="bar"><i style="width:97%;background:var(--ok)"></i></div></div>
+      <div class="card"><div class="nm">h100-tlx-test <span class="req y">required</span></div>
+        <div class="rate" style="color:var(--ok)">96%</div>
+        <div class="meta">50 / 52 passed · coverage 52/79</div>
+        <div class="meta">⏱ avg exec <b>~12 min</b> · queue-limited coverage</div>
+        <div class="bar"><i style="width:96%;background:var(--ok)"></i></div></div>
+      <div class="card"><div class="nm">mi350-tlx-test <span class="req y">required</span></div>
+        <div class="rate" style="color:var(--ok)">97%</div>
+        <div class="meta">63 / 65 passed · coverage 65/79</div>
+        <div class="meta">⏱ avg exec <b>~17 min</b> · most reliable</div>
+        <div class="bar"><i style="width:97%;background:var(--ok)"></i></div></div>
+      <div class="card"><div class="nm">b200-tlx-test <span class="req y">required</span></div>
+        <div class="rate" style="color:var(--warn)">65%</div>
+        <div class="meta">43 / 66 passed · coverage 66/79</div>
+        <div class="meta">⏱ avg exec <b>~9 min</b> · weak link</div>
+        <div class="bar"><i style="width:65%;background:var(--warn)"></i></div></div>
+      <div class="card" style="opacity:.7"><div class="nm">*-meta-triton-test <span class="req n">excluded</span></div>
+        <div class="rate" style="color:var(--bad)">~37%</div>
+        <div class="meta">tritonbench perf — flaky, deliberately not gated on</div>
+        <div class="bar"><i style="width:37%;background:var(--bad)"></i></div></div>
+    </div>
+    <div class="note"><b>Status read:</b>
+      <span class="tag g">mi350 / h100 / LIT solid (~96–97%)</span>
+      <span class="tag a">b200 is the practical limiter (65% + often absent)</span>
+      <span class="tag r">meta-triton excluded (chronically flaky)</span><br>
+      <b>Avg exec time</b> is the job's own run time (queue excluded) — informational only; it
+      does <b>not</b> gate the nightly, which just consumes whatever signal each commit already
+      has. Note <code>h100-tlx-test</code> runs in <b>~12 min</b>; its long "time to signal" is
+      pure queue wait, which is exactly why the walk-back (not HEAD) is used.</div>
+  </div>
+
+  <div class="panel">
+    <h2>2 · High-level flow of the nightly build</h2>
+    <svg id="flow-svg" width="100%" viewBox="0 0 1180 880" style="display:block;font-family:Inter,sans-serif">
+<defs>
+  <marker id="a" markerWidth="9" markerHeight="7" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#94a3b8"/></marker>
+  <marker id="ag" markerWidth="9" markerHeight="7" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#16a34a"/></marker>
+  <marker id="ar" markerWidth="9" markerHeight="7" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#dc2626"/></marker>
+  <filter id="sh"><feDropShadow dx="0" dy="1" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.08"/></filter>
+</defs>
+<g filter="url(#sh)"><rect x="330" y="16" width="360" height="52" rx="9" fill="#fffbeb" stroke="#fbbf24"/></g>
+<text x="510" y="38" text-anchor="middle" font-size="13" font-weight="700" fill="#92400e">⏱ Scheduled trigger — cron 04:00 UTC daily</text>
+<text x="510" y="55" text-anchor="middle" font-size="10" fill="#92400e">nightly-fbtriton.yml · also workflow_dispatch · guarded to facebookexperimental</text>
+<g filter="url(#sh)"><rect x="330" y="100" width="360" height="52" rx="9" fill="#eff6ff" stroke="#3b82f6"/></g>
+<text x="510" y="122" text-anchor="middle" font-size="12" font-weight="700" fill="#1e40af">① Read last-shipped commit</text>
+<text x="510" y="139" text-anchor="middle" font-size="10" fill="#1e40af">nightly index → latest.json (commit + date)</text>
+<g filter="url(#sh)"><rect x="330" y="184" width="360" height="52" rx="9" fill="#eff6ff" stroke="#3b82f6"/></g>
+<text x="510" y="206" text-anchor="middle" font-size="12" font-weight="700" fill="#1e40af">② Enumerate NEW commits on main since last release</text>
+<text x="510" y="223" text-anchor="middle" font-size="10" fill="#1e40af">newest → oldest (safety cap ~100 commits)</text>
+<polygon points="510,264 610,312 510,360 410,312" fill="#f9fafb" stroke="#d1d5db" filter="url(#sh)"/>
+<text x="510" y="308" text-anchor="middle" font-size="12" font-weight="700" fill="#374151">any new</text>
+<text x="510" y="324" text-anchor="middle" font-size="12" font-weight="700" fill="#374151">commits?</text>
+<g filter="url(#sh)"><rect x="800" y="286" width="330" height="52" rx="9" fill="#f9fafb" stroke="#9ca3af"/></g>
+<text x="965" y="308" text-anchor="middle" font-size="12" font-weight="700" fill="#374151">■ Exit silently</text>
+<text x="965" y="325" text-anchor="middle" font-size="10" fill="#374151">no tag · no wheel · no issue</text>
+<g filter="url(#sh)"><rect x="330" y="392" width="360" height="52" rx="9" fill="#f0fdf4" stroke="#22c55e"/></g>
+<text x="510" y="414" text-anchor="middle" font-size="12" font-weight="700" fill="#15803d">③ Take next commit (newest first)</text>
+<text x="510" y="431" text-anchor="middle" font-size="10" fill="#15803d">query check-runs API · dedupe to latest run per check</text>
+<polygon points="510,472 640,532 510,592 380,532" fill="#f9fafb" stroke="#d1d5db" filter="url(#sh)"/>
+<text x="510" y="522" text-anchor="middle" font-size="11" font-weight="700" fill="#374151">all 4 required</text>
+<text x="510" y="537" text-anchor="middle" font-size="11" font-weight="700" fill="#374151">checks green?</text>
+<text x="510" y="553" text-anchor="middle" font-size="8.5" fill="#656d76">LIT·h100·mi350·b200</text>
+<path d="M 380 532 L 250 532 L 250 418 L 330 418" fill="none" stroke="#dc2626" stroke-width="1.6" stroke-dasharray="5,3" marker-end="url(#ar)"/>
+<text x="250" y="478" text-anchor="middle" font-size="10" font-weight="700" fill="#dc2626">No →</text>
+<text x="250" y="492" text-anchor="middle" font-size="10" font-weight="700" fill="#dc2626">next</text>
+<g filter="url(#sh)"><rect x="800" y="506" width="330" height="60" rx="9" fill="#fef2f2" stroke="#dc2626"/></g>
+<text x="965" y="528" text-anchor="middle" font-size="12" font-weight="700" fill="#dc2626">⚑ None green → file tracking issue</text>
+<text x="965" y="545" text-anchor="middle" font-size="10" fill="#b91c1c">reuse report-nightly-failure.yml</text>
+<text x="965" y="559" text-anchor="middle" font-size="10" fill="#b91c1c">(dedup by title · labels: nightly)</text>
+<g filter="url(#sh)"><rect x="330" y="624" width="360" height="66" rx="9" fill="#e0f2fe" stroke="#7dd3fc"/></g>
+<text x="510" y="645" text-anchor="middle" font-size="12" font-weight="700" fill="#0369a1">④ Build wheels — wheels_fb.yml (ref, version, subset matrix)</text>
+<text x="510" y="662" text-anchor="middle" font-size="10" fill="#0369a1">checkout SHA · wheel ver 3.8.0.dev&lt;date&gt; (clean)</text>
+<text x="510" y="677" text-anchor="middle" font-size="10" fill="#0369a1">rewrite __init__.py __version__ = 3.8.0.dev&lt;date&gt;+fb.git&lt;hash&gt;</text>
+<g filter="url(#sh)"><rect x="330" y="718" width="360" height="60" rx="9" fill="#e0f2fe" stroke="#7dd3fc"/></g>
+<text x="510" y="738" text-anchor="middle" font-size="12" font-weight="700" fill="#0369a1">⑤ Upload to rolling 'nightly' Release + refresh Pages index</text>
+<text x="510" y="754" text-anchor="middle" font-size="10" fill="#0369a1">write latest.json · prune assets &gt; 30 days</text>
+<text x="510" y="768" text-anchor="middle" font-size="10" fill="#0369a1">GITHUB_TOKEN only (no PAT)</text>
+<g filter="url(#sh)"><rect x="380" y="806" width="260" height="46" rx="9" fill="#f0fdf4" stroke="#16a34a"/></g>
+<text x="510" y="834" text-anchor="middle" font-size="13" font-weight="800" fill="#15803d">✓ Nightly .dev wheel live</text>
+<path d="M 510 68 L 510 98" fill="none" stroke="#94a3b8" stroke-width="1.6" marker-end="url(#a)"/>
+<path d="M 510 152 L 510 182" fill="none" stroke="#94a3b8" stroke-width="1.6" marker-end="url(#a)"/>
+<path d="M 510 236 L 510 262" fill="none" stroke="#94a3b8" stroke-width="1.6" marker-end="url(#a)"/>
+<path d="M 610 312 L 798 312" fill="none" stroke="#94a3b8" stroke-width="1.6" marker-end="url(#a)"/>
+<text x="700" y="304" text-anchor="middle" font-size="10" font-weight="700" fill="#656d76">No</text>
+<path d="M 510 360 L 510 390" fill="none" stroke="#16a34a" stroke-width="1.6" marker-end="url(#ag)"/>
+<text x="524" y="380" font-size="10" font-weight="700" fill="#15803d">Yes</text>
+<path d="M 510 444 L 510 470" fill="none" stroke="#94a3b8" stroke-width="1.6" marker-end="url(#a)"/>
+<path d="M 640 532 L 798 532" fill="none" stroke="#dc2626" stroke-width="1.6" marker-end="url(#ar)"/>
+<text x="720" y="524" text-anchor="middle" font-size="10" font-weight="700" fill="#dc2626">commits exhausted</text>
+<path d="M 510 592 L 510 622" fill="none" stroke="#16a34a" stroke-width="1.6" marker-end="url(#ag)"/>
+<text x="524" y="612" font-size="10" font-weight="700" fill="#15803d">Yes</text>
+<path d="M 510 690 L 510 720" fill="none" stroke="#94a3b8" stroke-width="1.6" marker-end="url(#a)"/>
+<path d="M 510 778 L 510 804" fill="none" stroke="#94a3b8" stroke-width="1.6" marker-end="url(#a)"/>
+</svg>
+  </div>
+
+  <div class="panel">
+    <h2>3 · Nightly pick simulation — point-in-time (04:00 UTC cut)</h2>
+    <p>Replays the selection at two cut times. A check is green iff its <b>latest verdict completed
+      by that moment</b> is a pass — later signals (especially queued <code>h100</code>) are
+      invisible, faithfully reproducing what the nightly would have seen. Rows are the walk
+      newest→oldest; greyed rows were skipped (not all-green as of the cut); the highlighted row is
+      the pick. Each cell's superscript is the signal's <b>source</b> — <b>p</b>=push,
+      <b>c</b>=cron (schedule); hover a cell for the exact run &amp; time. The <b>green from</b>
+      line shows where each of the pick's four winning signals came from.</p>
+    <div class="simgrid"><div class="simcol"><div class="simhdr">Nightly run @ 2026-07-17 04:00 UTC</div><div class="simsum ok">✓ picks <b>5b19662d1</b> · committed <b>29 h</b> before the cut · walked 17</div><div class="srcline">green from: LIT&larr;<b>cron</b> · h100&larr;<b>cron</b> · mi350&larr;<b>cron</b> · b200&larr;<b>cron</b></div><table class="simtab"><thead><tr><th>commit</th><th>committed</th><th>LIT</th><th>h100</th><th>mi350</th><th>b200</th><th>subject</th></tr></thead><tbody><tr class="simskip"><td class="sha">0d35e590c</td><td class="dt">07-17 03:41</td><td class="c na" title="no run completed by cut">—</td><td class="c na" title="no run completed by cut">—</td><td class="c na" title="no run completed by cut">—</td><td class="c ok" title="latest verdict: success via push @ 2026-07-17T03:55:56Z">pass<sup>p</sup></td><td class="mm">[CI] Isolate torchTLX from</td></tr><tr class="simskip"><td class="sha">a78804555</td><td class="dt">07-17 02:15</td><td class="c ok" title="latest verdict: success via push @ 2026-07-17T02:44:11Z">pass<sup>p</sup></td><td class="c na" title="no run completed by cut">—</td><td class="c ok" title="latest verdict: success via push @ 2026-07-17T02:35:05Z">pass<sup>p</sup></td><td class="c ok" title="latest verdict: success via push @ 2026-07-17T02:27:20Z">pass<sup>p</sup></td><td class="mm">[AutoWS] [BE] Refactor exi</td></tr><tr class="simskip"><td class="sha">67a9e4e7d</td><td class="dt">07-17 02:15</td><td class="c na" title="no run completed by cut">—</td><td class="c na" title="no run completed by cut">—</td><td class="c na" title="no run completed by cut">—</td><td class="c na" title="no run completed by cut">—</td><td class="mm">[BE] [AutoWS] Cleanup warp</td></tr><tr class="simskip"><td class="sha">e54f913a7</td><td class="dt">07-17 02:15</td><td class="c na" title="no run completed by cut">—</td><td class="c na" title="no run completed by cut">—</td><td class="c na" title="no run completed by cut">—</td><td class="c na" title="no run completed by cut">—</td><td class="mm">[BE] [AutoWS] WS-10: isola</td></tr><tr class="simskip"><td class="sha">46837f473</td><td class="dt">07-17 02:15</td><td class="c na" title="no run completed by cut">—</td><td class="c na" title="no run completed by cut">—</td><td class="c na" title="no run completed by cut">—</td><td class="c na" title="no run completed by cut">—</td><td class="mm">[AutoWS] [BE] Unify do* si</td></tr><tr class="simskip"><td class="sha">bcfd5a4c4</td><td class="dt">07-17 01:19</td><td class="c ok" title="latest verdict: success via push @ 2026-07-17T01:47:44Z">pass<sup>p</sup></td><td class="c na" title="no run completed by cut">—</td><td class="c ok" title="latest verdict: success via push @ 2026-07-17T01:39:32Z">pass<sup>p</sup></td><td class="c ok" title="latest verdict: success via push @ 2026-07-17T01:31:55Z">pass<sup>p</sup></td><td class="mm">[TLX GEMM] Fix split-K red</td></tr><tr class="simskip"><td class="sha">53ab884d1</td><td class="dt">07-16 21:20</td><td class="c ok" title="latest verdict: success via schedule @ 2026-07-17T01:17:58Z">pass<sup>c</sup></td><td class="c warn" title="cancelled via push @ 2026-07-17T01:01:02Z">cxl<sup>p</sup></td><td class="c ok" title="latest verdict: success via schedule @ 2026-07-17T00:48:42Z">pass<sup>c</sup></td><td class="c ok" title="latest verdict: success via schedule @ 2026-07-17T01:10:32Z">pass<sup>c</sup></td><td class="mm">[ModuloSchedule] Epilogue </td></tr><tr class="simskip"><td class="sha">2054eb494</td><td class="dt">07-16 19:44</td><td class="c ok" title="latest verdict: success via push @ 2026-07-16T20:10:31Z">pass<sup>p</sup></td><td class="c na" title="no run completed by cut">—</td><td class="c ok" title="latest verdict: success via push @ 2026-07-16T20:07:54Z">pass<sup>p</sup></td><td class="c ok" title="latest verdict: success via push @ 2026-07-16T19:55:14Z">pass<sup>p</sup></td><td class="mm">[Triton/TLX] Lower overhea</td></tr><tr class="simskip"><td class="sha">697baf4ca</td><td class="dt">07-16 18:38</td><td class="c ok" title="latest verdict: success via push @ 2026-07-16T19:04:56Z">pass<sup>p</sup></td><td class="c warn" title="cancelled via push @ 2026-07-16T18:49:46Z">cxl<sup>p</sup></td><td class="c ok" title="latest verdict: success via push @ 2026-07-16T18:59:06Z">pass<sup>p</sup></td><td class="c ok" title="latest verdict: success via schedule @ 2026-07-16T18:59:46Z">pass<sup>c</sup></td><td class="mm">[Triton][auto-TMA][3/N] ho</td></tr><tr class="simskip"><td class="sha">3915b0ee8</td><td class="dt">07-16 18:03</td><td class="c ok" title="latest verdict: success via schedule @ 2026-07-16T19:04:54Z">pass<sup>c</sup></td><td class="c na" title="no run completed by cut">—</td><td class="c ok" title="latest verdict: success via schedule @ 2026-07-16T18:41:05Z">pass<sup>c</sup></td><td class="c ok" title="latest verdict: success via push @ 2026-07-16T18:16:55Z">pass<sup>p</sup></td><td class="mm">[triton][beta] [Cherry-pic</td></tr><tr class="simskip"><td class="sha">23689abed</td><td class="dt">07-16 13:47</td><td class="c ok" title="latest verdict: success via push @ 2026-07-16T14:15:19Z">pass<sup>p</sup></td><td class="c na" title="no run completed by cut">—</td><td class="c ok" title="latest verdict: success via push @ 2026-07-16T14:07:00Z">pass<sup>p</sup></td><td class="c ok" title="latest verdict: success via push @ 2026-07-16T13:59:35Z">pass<sup>p</sup></td><td class="mm">[sched2tlx] Add perf_harne</td></tr><tr class="simskip"><td class="sha">321c0f667</td><td class="dt">07-16 13:28</td><td class="c ok" title="latest verdict: success via push @ 2026-07-16T13:53:50Z">pass<sup>p</sup></td><td class="c na" title="no run completed by cut">—</td><td class="c ok" title="latest verdict: success via push @ 2026-07-16T13:52:44Z">pass<sup>p</sup></td><td class="c ok" title="latest verdict: success via push @ 2026-07-16T13:39:55Z">pass<sup>p</sup></td><td class="mm">[TLX][AMD] Fix warp-pipe a</td></tr><tr class="simskip"><td class="sha">4e2cc48bb</td><td class="dt">07-16 08:20</td><td class="c ok" title="latest verdict: success via schedule @ 2026-07-16T13:12:47Z">pass<sup>c</sup></td><td class="c warn" title="cancelled via push @ 2026-07-16T13:00:45Z">cxl<sup>p</sup></td><td class="c ok" title="latest verdict: success via schedule @ 2026-07-16T12:51:18Z">pass<sup>c</sup></td><td class="c ok" title="latest verdict: success via schedule @ 2026-07-16T13:10:30Z">pass<sup>c</sup></td><td class="mm">[Triton][auto-TMA][2/N] Pr</td></tr><tr class="simskip"><td class="sha">53bbc9412</td><td class="dt">07-16 05:16</td><td class="c na" title="no run completed by cut">—</td><td class="c na" title="no run completed by cut">—</td><td class="c na" title="no run completed by cut">—</td><td class="c na" title="no run completed by cut">—</td><td class="mm">[sched2tlx] case9: FP8 blo</td></tr><tr class="simskip"><td class="sha">76d0bf520</td><td class="dt">07-16 03:49</td><td class="c ok" title="latest verdict: success via push @ 2026-07-16T04:09:42Z">pass<sup>p</sup></td><td class="c bad" title="latest verdict: failure via push @ 2026-07-17T03:44:03Z">fail<sup>p</sup></td><td class="c ok" title="latest verdict: success via push @ 2026-07-16T04:11:33Z">pass<sup>p</sup></td><td class="c bad" title="latest verdict: failure via push @ 2026-07-16T03:57:21Z">fail<sup>p</sup></td><td class="mm">[TLX] Add warp-specialized</td></tr><tr class="simskip"><td class="sha">cf4db2746</td><td class="dt">07-16 03:35</td><td class="c ok" title="latest verdict: success via push @ 2026-07-16T04:02:25Z">pass<sup>p</sup></td><td class="c bad" title="latest verdict: failure via push @ 2026-07-17T03:37:07Z">fail<sup>p</sup></td><td class="c ok" title="latest verdict: success via push @ 2026-07-16T04:08:42Z">pass<sup>p</sup></td><td class="c bad" title="latest verdict: failure via push @ 2026-07-16T03:42:02Z">fail<sup>p</sup></td><td class="mm">[triton][auto-TMA][1/N] la</td></tr><tr class="simpick"><td class="sha">5b19662d1</td><td class="dt">07-15 23:24</td><td class="c ok" title="latest verdict: success via schedule @ 2026-07-16T01:08:31Z">pass<sup>c</sup></td><td class="c ok" title="latest verdict: success via schedule @ 2026-07-17T03:01:50Z">pass<sup>c</sup></td><td class="c ok" title="latest verdict: success via schedule @ 2026-07-16T00:36:13Z">pass<sup>c</sup></td><td class="c ok" title="latest verdict: success via schedule @ 2026-07-16T01:10:40Z">pass<sup>c</sup></td><td class="mm">[TLX] Respect user-pinned  <span class="pick">◀ pick</span></td></tr></tbody></table></div><div class="simcol"><div class="simhdr">Nightly run @ 2026-07-16 04:00 UTC</div><div class="simsum ok">✓ picks <b>4f2446760</b> · committed <b>11 h</b> before the cut · walked 15</div><div class="srcline">green from: LIT&larr;<b>push</b> · h100&larr;<b>push</b> · mi350&larr;<b>push</b> · b200&larr;<b>push</b></div><table class="simtab"><thead><tr><th>commit</th><th>committed</th><th>LIT</th><th>h100</th><th>mi350</th><th>b200</th><th>subject</th></tr></thead><tbody><tr class="simskip"><td class="sha">76d0bf520</td><td class="dt">07-16 03:49</td><td class="c na" title="no run completed by cut">—</td><td class="c na" title="no run completed by cut">—</td><td class="c na" title="no run completed by cut">—</td><td class="c bad" title="latest verdict: failure via push @ 2026-07-16T03:57:21Z">fail<sup>p</sup></td><td class="mm">[TLX] Add warp-specialized</td></tr><tr class="simskip"><td class="sha">cf4db2746</td><td class="dt">07-16 03:35</td><td class="c na" title="no run completed by cut">—</td><td class="c na" title="no run completed by cut">—</td><td class="c na" title="no run completed by cut">—</td><td class="c bad" title="latest verdict: failure via push @ 2026-07-16T03:42:02Z">fail<sup>p</sup></td><td class="mm">[triton][auto-TMA][1/N] la</td></tr><tr class="simskip"><td class="sha">5b19662d1</td><td class="dt">07-15 23:24</td><td class="c ok" title="latest verdict: success via schedule @ 2026-07-16T01:08:31Z">pass<sup>c</sup></td><td class="c warn" title="cancelled via push @ 2026-07-16T00:59:27Z">cxl<sup>p</sup></td><td class="c ok" title="latest verdict: success via schedule @ 2026-07-16T00:36:13Z">pass<sup>c</sup></td><td class="c ok" title="latest verdict: success via schedule @ 2026-07-16T01:10:40Z">pass<sup>c</sup></td><td class="mm">[TLX] Respect user-pinned </td></tr><tr class="simskip"><td class="sha">23f02c160</td><td class="dt">07-15 22:13</td><td class="c ok" title="latest verdict: success via push @ 2026-07-15T22:33:13Z">pass<sup>p</sup></td><td class="c na" title="no run completed by cut">—</td><td class="c ok" title="latest verdict: success via push @ 2026-07-15T22:33:25Z">pass<sup>p</sup></td><td class="c ok" title="latest verdict: success via push @ 2026-07-15T22:24:21Z">pass<sup>p</sup></td><td class="mm">[TLX FA BWD] Fix intra-tas</td></tr><tr class="simskip"><td class="sha">da3dd080a</td><td class="dt">07-15 21:51</td><td class="c ok" title="latest verdict: success via push @ 2026-07-15T22:19:01Z">pass<sup>p</sup></td><td class="c na" title="no run completed by cut">—</td><td class="c ok" title="latest verdict: success via push @ 2026-07-15T22:19:21Z">pass<sup>p</sup></td><td class="c ok" title="latest verdict: success via push @ 2026-07-15T22:03:36Z">pass<sup>p</sup></td><td class="mm">[triton] Derive NVIDIA lau</td></tr><tr class="simskip"><td class="sha">ab7579836</td><td class="dt">07-15 21:43</td><td class="c ok" title="latest verdict: success via push @ 2026-07-15T22:08:26Z">pass<sup>p</sup></td><td class="c na" title="no run completed by cut">—</td><td class="c ok" title="latest verdict: success via push @ 2026-07-15T22:02:00Z">pass<sup>p</sup></td><td class="c bad" title="latest verdict: failure via push @ 2026-07-15T21:53:17Z">fail<sup>p</sup></td><td class="mm">[triton][beta] [Cherry-pic</td></tr><tr class="simskip"><td class="sha">56b4c7aaa</td><td class="dt">07-15 20:58</td><td class="c ok" title="latest verdict: success via push @ 2026-07-15T21:25:26Z">pass<sup>p</sup></td><td class="c na" title="no run completed by cut">—</td><td class="c ok" title="latest verdict: success via push @ 2026-07-15T21:27:56Z">pass<sup>p</sup></td><td class="c ok" title="latest verdict: success via push @ 2026-07-15T21:13:14Z">pass<sup>p</sup></td><td class="mm">[triton] Gate NVIDIA-only </td></tr><tr class="simskip"><td class="sha">f46e74bab</td><td class="dt">07-15 20:53</td><td class="c ok" title="latest verdict: success via push @ 2026-07-15T21:21:37Z">pass<sup>p</sup></td><td class="c na" title="no run completed by cut">—</td><td class="c ok" title="latest verdict: success via push @ 2026-07-15T21:15:00Z">pass<sup>p</sup></td><td class="c ok" title="latest verdict: success via push @ 2026-07-15T21:09:50Z">pass<sup>p</sup></td><td class="mm">[triton][bitequiv] Suite 1</td></tr><tr class="simskip"><td class="sha">59283bfd7</td><td class="dt">07-15 20:49</td><td class="c ok" title="latest verdict: success via push @ 2026-07-15T21:18:22Z">pass<sup>p</sup></td><td class="c na" title="no run completed by cut">—</td><td class="c ok" title="latest verdict: success via push @ 2026-07-15T21:11:14Z">pass<sup>p</sup></td><td class="c bad" title="latest verdict: failure via push @ 2026-07-15T21:08:15Z">fail<sup>p</sup></td><td class="mm">[TLX][AMD] Add paged-atten</td></tr><tr class="simskip"><td class="sha">9ac5568a6</td><td class="dt">07-15 20:31</td><td class="c ok" title="latest verdict: success via push @ 2026-07-15T20:57:57Z">pass<sup>p</sup></td><td class="c na" title="no run completed by cut">—</td><td class="c ok" title="latest verdict: success via push @ 2026-07-15T20:51:35Z">pass<sup>p</sup></td><td class="c bad" title="latest verdict: failure via push @ 2026-07-15T20:41:20Z">fail<sup>p</sup></td><td class="mm">[TLX][AMD] Document direct</td></tr><tr class="simskip"><td class="sha">6097c079e</td><td class="dt">07-15 20:06</td><td class="c ok" title="latest verdict: success via push @ 2026-07-15T20:33:17Z">pass<sup>p</sup></td><td class="c na" title="no run completed by cut">—</td><td class="c ok" title="latest verdict: success via push @ 2026-07-15T20:27:04Z">pass<sup>p</sup></td><td class="c bad" title="latest verdict: failure via push @ 2026-07-15T20:16:54Z">fail<sup>p</sup></td><td class="mm">[triton] Re-sync test_line</td></tr><tr class="simskip"><td class="sha">6698a6a84</td><td class="dt">07-15 18:45</td><td class="c ok" title="latest verdict: success via push @ 2026-07-15T19:12:34Z">pass<sup>p</sup></td><td class="c na" title="no run completed by cut">—</td><td class="c ok" title="latest verdict: success via push @ 2026-07-15T19:42:07Z">pass<sup>p</sup></td><td class="c bad" title="latest verdict: failure via schedule @ 2026-07-15T19:06:33Z">fail<sup>c</sup></td><td class="mm">[AutoWS][ModuloSched] Stan</td></tr><tr class="simskip"><td class="sha">f12244641</td><td class="dt">07-15 18:01</td><td class="c ok" title="latest verdict: success via schedule @ 2026-07-15T19:03:15Z">pass<sup>c</sup></td><td class="c warn" title="cancelled via push @ 2026-07-15T18:48:42Z">cxl<sup>p</sup></td><td class="c ok" title="latest verdict: success via schedule @ 2026-07-15T18:44:35Z">pass<sup>c</sup></td><td class="c bad" title="latest verdict: failure via push @ 2026-07-15T18:20:39Z">fail<sup>p</sup></td><td class="mm">[CI] Bump TLX tutorial cor</td></tr><tr class="simskip"><td class="sha">5bc6c8a01</td><td class="dt">07-15 17:59</td><td class="c ok" title="latest verdict: success via push @ 2026-07-15T18:21:02Z">pass<sup>p</sup></td><td class="c ok" title="latest verdict: success via push @ 2026-07-16T01:05:27Z">pass<sup>p</sup></td><td class="c ok" title="latest verdict: success via push @ 2026-07-15T18:34:53Z">pass<sup>p</sup></td><td class="c bad" title="latest verdict: failure via push @ 2026-07-15T18:20:43Z">fail<sup>p</sup></td><td class="mm">[triton][beta] [Cherry-pic</td></tr><tr class="simpick"><td class="sha">4f2446760</td><td class="dt">07-15 17:15</td><td class="c ok" title="latest verdict: success via push @ 2026-07-15T17:42:39Z">pass<sup>p</sup></td><td class="c ok" title="latest verdict: success via push @ 2026-07-15T22:39:02Z">pass<sup>p</sup></td><td class="c ok" title="latest verdict: success via push @ 2026-07-15T17:57:28Z">pass<sup>p</sup></td><td class="c ok" title="latest verdict: success via push @ 2026-07-15T17:28:34Z">pass<sup>p</sup></td><td class="mm">Fix tritonbench blackwell_ <span class="pick">◀ pick</span></td></tr></tbody></table></div></div>
+    <div class="legend">
+      <span><b style="background:var(--okbg);border:1px solid var(--ok)"></b><code>pass</code> — latest verdict by the cut is success</span>
+      <span><b style="background:var(--badbg);border:1px solid var(--bad)"></b><code>fail</code> — latest verdict by the cut is failure</span>
+      <span><b style="background:var(--warnbg);border:1px solid var(--warn)"></b><code>cxl</code> — only a cancelled run so far (no verdict yet)</span>
+      <span><b style="background:var(--nabg);border:1px solid var(--na)"></b><code>—</code> — no run completed by the cut</span>
+      <span>source: <sup>p</sup>=push · <sup>c</sup>=cron</span>
+    </div>
+    <div class="note"><b>Point-in-time, not live status.</b> Cells reflect what was known
+      <i>at 04:00 that day</i>. A commit whose <code>h100</code> only finished at, say, 18:46 reads
+      <code>cxl</code>/<code>—</code> at the 04:00 cut even though it would be <code>pass</code>
+      today — so each cut picks an older commit whose four signals had all completed in time.
+      Notice <code>5b19662d1</code>: skipped at the 7/16 cut (its <code>h100</code> cron run was
+      still queued, showing <code>cxl</code>) but the <b>pick</b> at 7/17 once that cron run finally
+      completed at 03:01.</div>
+
+  </div>
+
+</div>
+</body></html>
